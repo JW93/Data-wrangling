@@ -561,6 +561,140 @@ as.numeric(str_replace(polls$remain, "%", ""))/100
 polls <- polls %>% mutate(remain=parse_number(remain)/100)
 
 class(polls$remain)
+
+
+
+#Q6: The undecided column has some "N/A" values. These "N/A"s are only 
+#present when the remain and leave columns total 100%, so they should 
+#actually be zeros.
+#Use a function from stringr to convert "N/A" in the undecided column to
+#0. The format of your command should be function_name(polls$undecided, 
+#"arg1", "arg2").
+#What function replaces function_name?
+str_repl
+#What argument replaces arg1?
+N/A
+#What argument replaces arg2?
+0
+
+#Q7: The dates column contains the range of dates over which the poll was 
+#conducted. The format is "8-10 Jan" where the poll had a start date of 
+#2016-01-08 and end date of 2016-01-10. Some polls go across month 
+#boundaries (16 May-12 June). The end date of the poll will always be 
+#one or two digits, followed by a space, followed by the month as one or
+#more letters (either capital or lowercase). In these data, all month 
+#abbreviations or names have 3, 4 or 5 letters.
+#Write a regular expression to extract the end day and month from dates.
+#Insert it into the skeleton code below:
+
+temp <- str_extract_all(polls$dates, "\\d+\\s[a-zA-Z]{3,5}")
+temp <- str_extract_all(polls$dates, "\\d+\\s[a-zA-Z]+")
+temp <- str_extract_all(polls$dates, "[0-9]+\\s[a-zA-Z]+")
+temp <- str_extract_all(polls$dates, "\\d{1,2}\\s[a-zA-Z]+")
+end_date <- sapply(temp, function(x) x[length(x)]) # take last element (handles polls that cross month boundaries)
+end_date
+#Which regular expressions correctly extracts the end day and month when
+#inserted into the blank in the code above? (see answer in code above)
+
+
+##SECTION 4: Dates, Times and Text Mining
+#Text mining: case study
+#for more detail, see book
+
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(scales)
+set.seed(1)
+
+#In general, we can extract data directly from Twitter using the rtweet
+#package. However, in this case, a group has already compiled data for
+#us and made it available at https://www.thetrumparchive.com/
+
+url <- 'https://drive.google.com/file/d/16wm-2NTKohhcA26w-kaWfhLIGwl_oX95/view'
+trump_tweets <- map(2009:2017, ~sprintf(url, .x)) %>%
+  map_df(jsonlite::fromJSON, simplifyDataFrame = TRUE) %>%
+  filter(!is_retweet & !str_detect(text, '^"')) %>%
+  mutate(created_at = parse_date_time(created_at, orders = "a b! d! H!:M!:S! z!* Y!", tz="EST")) 
+
+#for convenience
+
+library(dslabs)
+data("trump_tweets")
+
+#this is data frame with information about the tweet:
+  
+  head(trump_tweets)
+
+#The variables that are included are:
+  
+  names(trump_tweets)
+
+#The help file ?trump_tweets provides details on what each variable 
+#represents. The tweets are represented by the text variable:
+  
+  trump_tweets %>% select(text) %>% head
+
+#and the source variable tells us the device that was used to compose 
+#and upload each tweet:
+  
+  trump_tweets %>% count(source) %>% arrange(desc(n))
+
+#We can use extract to remove the Twitter for part of the source and 
+#filter out retweets.
+
+trump_tweets %>% 
+  extract(source, "source", "Twitter for (.*)") %>%
+  count(source) 
+
+##see entire case study in textbook
+#pattern to use for tweet/word extraction (starts with @, # or neither and is followed by any combination of letters or digits)
+pattern <- "([^A-Za-z\\d#@']|'(?![A-Za-z\\d#@]))"
+
+#Assessment Part 1: Dates, Times, and Text Mining
+#Q1: Load the brexit_polls data frame from dslabs:
+
+data(brexit_polls)
+class(brexit_polls$startdate)
+#How many polls had a start date (startdate) in April (month number 4)?
+
+brexit_polls %>% filter(month(startdate)==04) %>% count()
+
+#Use the round_date() function on the enddate column with the argument
+#unit="week". How many polls ended the week of 2016-06-12?
+#Read the documentation to learn more about round_date()
+
+brexit_polls %>% filter(round_date(enddate, unit = "week")=="2016-06-12") %>% count()
+?round_date
+
+#Q2: Use the weekdays() function from lubridate to determine the weekday
+#on which each poll ended (enddate).
+#On which weekday did the greatest number of polls end?
+
+days <- wday(brexit_polls$enddate, label=T) 
+class(days)
+summary(days)
+
+#Q3: Load the movielens data frame from dslabs.
+
+data(movielens)
+
+#This data frame contains a set of about 100,000 movie reviews. The 
+#timestamp column contains the review date as the number of seconds since 
+#1970-01-01 (epoch time).
+#Convert the timestamp column to dates using the lubridate as_datetime() 
+#function.
+#Which year had the most movie reviews?
+
+movielens$timestamp <- as_datetime(movielens$timestamp)
+movielens %>% count(year(timestamp)) %>% arrange(desc(n))
+
+
+#Which hour of the day had the most movie reviews?
+
+movielens %>% count(hour(timestamp)) %>% arrange(desc(n))
+
 #test Joe
 a <- c("43.555,76", "44.898,76")
 as.numeric(a)
